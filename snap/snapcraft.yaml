@@ -1,0 +1,53 @@
+name: bubblegum-96
+version: 16-1
+summary: Bubblegum 96
+description: |
+ Bootloader files and partitoning data to create a
+ bootable Ubuntu Core image for the 96boards bubblegum-96.
+type: gadget
+architectures:
+  - armhf
+confinement: strict
+grade: stable
+
+parts:
+  uboot:
+    plugin: make
+    source: https://github.com/96boards-bubblegum/u-boot.git
+    source-branch: bubblegum96-2015.07
+    source-depth: 1
+    artifacts: [u-boot-dtb.bin]
+    prepare: |
+      set -e
+      #git apply ../../../uboot.patch
+      if [ "$(arch)" = "x86_64" ]; then
+        TCHAINVER="$(wget -q -O - \
+                   https://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/| \
+                   html2text -width 200|grep 'x86_64_aarch64-linux-gnu.tar.xz '|cut -d' ' -f2)"
+        wget https://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/$TCHAINVER
+        tar xf $TCHAINVER
+        mv $(echo $TCHAINVER|sed 's/.tar.xz$//') toolchain
+        CROSS_COMPILE=$(pwd)/toolchain/bin/aarch64-linux-gnu- make s900_96board_defconfig
+      else
+        make s900_96board_defconfig
+      fi
+    build: |
+      set -e
+      if [ "$(arch)" = "x86_64" ]; then
+        CROSS_COMPILE=$(pwd)/toolchain/bin/aarch64-linux-gnu- make
+      else
+        make
+      fi
+    install: |
+      set -e
+      cp u-boot-dtb.bin $SNAPCRAFT_PART_INSTALL/
+      tools/mkenvimage -r -s 131072 -o $SNAPCRAFT_PART_INSTALL/uboot.env ../../../uboot.env.in
+      ln -s uboot.env $SNAPCRAFT_PART_INSTALL/uboot.conf
+    build-packages:
+      - bc
+      - build-essential
+      - device-tree-compiler
+      - html2text
+      - libpython2.7-dev
+      - python-minimal
+      - wget

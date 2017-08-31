@@ -1,0 +1,13 @@
+device-tree: s900_96board.dtb
+device-tree-origin: kernel
+volumes:
+  bubblegum-96:
+    bootloader: u-boot
+    schema: mbr
+    structure:
+      - name: u-boot
+        type: bare
+        size: 430080
+        offset: 8192
+        content:
+          - image: u-boot-dtb.bin
